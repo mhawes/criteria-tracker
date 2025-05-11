@@ -1,15 +1,20 @@
 <template>
   <q-page class="row items-center justify-evenly">
+    <!-- Buttons -->
     <q-page-sticky v-if="criteriaSet" position="top-right" :offset="[18, -43]" class="z-top">
-      <q-btn outline icon-right="save" label="Save criteria file" color="white" @click="isSaveDialogOpen = true" />
+      <q-btn outline icon-right="download" label="CSV" color="white"
+        @click="isSaveDialogOpen = true; saveFileFormat = 'csv'" />
+      <q-btn outline icon-right="save" label="Save" color="white"
+        @click="isSaveDialogOpen = true; saveFileFormat = 'json'" />
     </q-page-sticky>
 
+    <!-- Main section -->
     <div v-if="criteriaSet" class="q-pa-xl full-width">
+      <!-- Summary card -->
       <q-card class="q-mb-md">
         <q-card-section>
           <div class="text-h6">{{ criteriaSet?.courseTitle }} ({{ criteriaSet?.courseYear }})</div>
           <div class="text-subtitle2">{{ criteriaSet?.courseCode }}</div>
-
         </q-card-section>
 
         <div class="q-pa-md text-subtitle2">
@@ -102,7 +107,7 @@
 
                   <q-card-section>
                     <div class="float-right">
-                      <q-btn @click="onClickAddClaim(criteria)" color="accent" text-color="white" icon="add" size="sm">
+                      <q-btn @click="onClickAddClaim(criteria)" color="grey-14" text-color="white" icon="add" size="sm">
                       </q-btn>
                     </div>
                     <div class="text-subtitle2 q-pb-md">Claims:</div>
@@ -113,7 +118,7 @@
                           <q-item-section>
                             <q-chip clickable @click="onClickClaim(claim, criteria)"
                               :color="getClaimColor(claim.source)" text-color="white"
-                              :icon="claim.confirmed ? 'check' : 'question_mark'" size="md">
+                              :icon="claim.confirmed ? 'check' : 'question_mark'" size="md" class="glossy">
                               {{ claim.evidence }} {{ claim.claimDate ? `(${claim.claimDate})` : '' }}
                             </q-chip>
                           </q-item-section>
@@ -139,7 +144,7 @@
 
         <div class="q-pa-md">
           <q-file outlined label="File... (Drag and drop)" v-model="criteriaSetFile" stack-label
-            @update:model-value="uploadFile(criteriaSetFile)" />
+            @update:model-value="uploadFile(criteriaSetFile)" accept=".json" />
         </div>
         <q-card-section>
           <div class="text-h6">Or...</div>
@@ -415,36 +420,52 @@ function uploadFile(file: File | null): void {
 function saveCriteriaFile(): void {
   if (criteriaSet.value) {
     if (saveFileFormat.value === 'csv') {
-      const rows = [['Criteria ID', 'Title', 'Guidance', 'Claims']];
-      criteriaSet.value.sections.forEach(section => {
-        section.criteria.forEach(criteria => {
-          const claims = criteria.claims.map(claim => `${claim.evidence} ${claim.source} (${claim.claimDate})`).join('\n');
-          const guidance = criteria.guidance.join('\n ');
-          rows.push([criteria.id.toString(), criteria.title, guidance, claims]);
-        });
-      });
-
-      const csvContent = rows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-      const blob = new Blob([csvContent], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${saveFileName.value}.csv`;
-      link.click();
-      URL.revokeObjectURL(url);
+      exportCsv();
     } else {
-      const dataStr = JSON.stringify(criteriaSet.value, null, 2);
-      const blob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${saveFileName.value}.json`;
-      link.click();
-      URL.revokeObjectURL(url);
+      exportCriteriaFile();
     }
   } else {
     console.error('No criteria set to save.');
   }
   isSaveDialogOpen.value = false;
+}
+
+function exportCriteriaFile() {
+  const dataStr = JSON.stringify(criteriaSet.value, null, 2);
+  const blob = new Blob([dataStr], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${saveFileName.value}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportCsv() {
+  const rows = [[criteriaSet.value?.courseCode || '']];
+
+  criteriaSet.value?.sections.forEach(section => {
+    // Add section header
+    rows.push(['LEARNING OUTCOME:', `${section.id} ${section.learningOutcome}`]);
+
+    // Add column headings
+    rows.push(['Assessment criteria', 'Candidate guidance to criteria', 'Portfolio reference']);
+
+    // Add criteria rows
+    section.criteria.forEach(criteria => {
+      const guidance = criteria.guidance.map(item => `• ${item}`).join('\n');
+      const claims = criteria.claims.map(claim => `${claim.evidence} ${claim.claimDate ? `${claim.claimDate}` : ''} (${claim.source}) ${claim.page ? `p${claim.page}` : ''}`).join('\n');
+      rows.push([`${criteria.id} ${criteria.title}`, guidance, claims]);
+    });
+  });
+
+  const csvContent = rows.map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+  const blob = new Blob([csvContent], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${saveFileName.value}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 </script>
