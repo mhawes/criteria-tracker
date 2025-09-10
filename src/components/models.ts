@@ -20,6 +20,12 @@ export interface CriteriaDefinition {
   claims: Claim[];
 }
 
+export interface CriteriaUnit {
+  id: number;
+  learningOutcome: string;
+  sections: CriteriaSection[];
+}
+
 export interface CriteriaSection {
   id: number;
   learningOutcome: string;
@@ -30,5 +36,6 @@ export interface CriteriaSet {
   courseTitle: string;
   courseCode: string;
   courseYear: string;
+  units: CriteriaUnit[];
   sections: CriteriaSection[];
 }

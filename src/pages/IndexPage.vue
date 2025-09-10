@@ -18,117 +18,127 @@
         </q-card-section>
 
         <div class="q-pa-md text-subtitle2">
-          Overall progress: ({{criteriaSet?.sections.reduce((total, section) => {
-            return total + section.criteria.reduce((sectionTotal, criteria) => {
-              return sectionTotal + Math.min(criteria.claims.length, 2);
+          Overall progress: ({{criteriaSet?.units.reduce((total, unit) => {
+            return total + unit.sections.reduce((sectionTotal, section) => {
+              return sectionTotal + section.criteria.reduce((criteriaTotal, criteria) => {
+                return criteriaTotal + Math.min(criteria.claims.length, 2);
+              }, 0);
             }, 0);
-          }, 0)}}/{{criteriaSet?.sections.reduce((total, section) => {
-            return total + section.criteria.length * 2;
-          }, 0)}}) <q-linear-progress :color="getOverallProgress() >= 1 ? 'positive' : 'primary'"
+          }, 0)}}/{{criteriaSet?.units.reduce((total, unit) => {
+            return total + unit.sections.reduce((sectionTotal, section) => {
+              return sectionTotal + section.criteria.length * 2;
+            }, 0);
+          }, 0)}})
+          <q-linear-progress :color="getOverallProgress() >= 1 ? 'positive' : 'primary'"
             :value="getOverallProgress()"></q-linear-progress>
         </div>
       </q-card>
 
       <q-list bordered class="rounded-borders">
         <!-- Sections -->
-        <q-expansion-item v-for="section in criteriaSet?.sections" :key="section.id" expand-separator
-          :label="section.id + ' ' + section.learningOutcome" :icon="isSectionComplete(section) ? 'check' : 'cancel'"
-          default-opened header-class="bg-grey-2 text-h5">
-          <!-- Section progress -->
-          <div class="q-pa-md text-subtitle2">
-            <div
-              v-if="section.criteria.some(criteria => criteria.claims.some(claim => claim.source === ClaimSource.Written))">
-              <q-icon name="check" color="positive" />
-              Contains atleast one <q-chip label="Written" :color="getClaimColor(ClaimSource.Written)"
-                text-color="white" size="sm" />
-              claim
+        <q-expansion-item v-for="unit in criteriaSet?.units" :key="unit.id" expand-separator
+          :label="unit.id + ' ' + unit.learningOutcome" :icon="isUnitComplete(unit) ? 'check' : 'cancel'" default-opened
+          header-class="bg-grey-5 text-h4">
+          <q-expansion-item v-for="section in unit?.sections" :key="section.id" expand-separator
+            :label="section.id + ' ' + section.learningOutcome" :icon="isSectionComplete(section) ? 'check' : 'cancel'"
+            default-opened header-class="bg-grey-3 text-h5">
+            <!-- Section progress -->
+            <div class="q-pa-md text-subtitle2">
+              <div
+                v-if="section.criteria.some(criteria => criteria.claims.some(claim => claim.source === ClaimSource.Written))">
+                <q-icon name="check" color="positive" />
+                Contains atleast one <q-chip label="Written" :color="getClaimColor(ClaimSource.Written)"
+                  text-color="white" size="sm" />
+                claim
+              </div>
+              <div v-else>
+                <q-icon name="cancel" color="negative" />
+                Requires atleast one <q-chip label="Written" :color="getClaimColor(ClaimSource.Written)"
+                  text-color="white" size="sm" /> claim
+              </div>
+
+              <div
+                v-if="section.criteria.some(criteria => criteria.claims.some(claim => claim.source === ClaimSource.Testimony))">
+                <q-icon name="check" color="positive" />
+                Contains atleast one <q-chip label="Testimony" :color="getClaimColor(ClaimSource.Testimony)"
+                  text-color="white" size="sm" /> claim
+              </div>
+              <div v-else>
+                <q-icon name="cancel" color="negative" />
+                Requires atleast one <q-chip label="Testimony" :color="getClaimColor(ClaimSource.Testimony)"
+                  text-color="white" size="sm" /> claim
+              </div>
+
+              <div
+                v-if="section.criteria.some(criteria => criteria.claims.some(claim => claim.source === ClaimSource.TutorObservation))">
+                <q-icon name="check" color="positive" />
+                Contains atleast one <q-chip label="Tutor Observation"
+                  :color="getClaimColor(ClaimSource.TutorObservation)" text-color="white" size="sm" /> claim
+              </div>
+              <div v-else>
+                <q-icon name="cancel" color="negative" />
+                Requires atleast one <q-chip label="Tutor Observation"
+                  :color="getClaimColor(ClaimSource.TutorObservation)" text-color="white" size="sm" /> claim
+              </div>
+
+              <div class="q-pa-md">
+                Progress: ({{section.criteria.reduce((total, criteria) => {
+                  return total + Math.min(criteria.claims.length, 2);
+                }, 0)}}/{{ section.criteria.length * 2 }})
+                <q-linear-progress :color="getSectionProgress(section) >= 1 ? 'positive' : 'primary'"
+                  :value="getSectionProgress(section)"></q-linear-progress>
+              </div>
+
             </div>
-            <div v-else>
-              <q-icon name="cancel" color="negative" />
-              Requires atleast one <q-chip label="Written" :color="getClaimColor(ClaimSource.Written)"
-                text-color="white" size="sm" /> claim
-            </div>
 
-            <div
-              v-if="section.criteria.some(criteria => criteria.claims.some(claim => claim.source === ClaimSource.Testimony))">
-              <q-icon name="check" color="positive" />
-              Contains atleast one <q-chip label="Testimony" :color="getClaimColor(ClaimSource.Testimony)"
-                text-color="white" size="sm" /> claim
-            </div>
-            <div v-else>
-              <q-icon name="cancel" color="negative" />
-              Requires atleast one <q-chip label="Testimony" :color="getClaimColor(ClaimSource.Testimony)"
-                text-color="white" size="sm" /> claim
-            </div>
-
-            <div
-              v-if="section.criteria.some(criteria => criteria.claims.some(claim => claim.source === ClaimSource.TutorObservation))">
-              <q-icon name="check" color="positive" />
-              Contains atleast one <q-chip label="Tutor Observation"
-                :color="getClaimColor(ClaimSource.TutorObservation)" text-color="white" size="sm" /> claim
-            </div>
-            <div v-else>
-              <q-icon name="cancel" color="negative" />
-              Requires atleast one <q-chip label="Tutor Observation"
-                :color="getClaimColor(ClaimSource.TutorObservation)" text-color="white" size="sm" /> claim
-            </div>
-
-            <div class="q-pa-md">
-              Progress: ({{section.criteria.reduce((total, criteria) => {
-                return total + Math.min(criteria.claims.length, 2);
-              }, 0)}}/{{ section.criteria.length * 2 }})
-              <q-linear-progress :color="getSectionProgress(section) >= 1 ? 'positive' : 'primary'"
-                :value="getSectionProgress(section)"></q-linear-progress>
-            </div>
-
-          </div>
-
-          <!-- Criteria definitions -->
-          <q-expansion-item v-for="criteria in section?.criteria" :key="criteria.id" expand-separator
-            :label="criteria.id + ' ' + criteria.title" default-opened :header-inset-level="0.5"
-            header-class="bg-grey-2 text-h6">
-            <!-- Criteria details -->
-            <q-card>
-              <div class="row q-pl-xl">
-                <div class="col">
-                  <div class="text-subtitle2">Guidance:</div>
-                  <q-card-section>
-                    <q-list dense v-for="item in criteria.guidance" :key="item">
-                      <q-item>
-                        <q-item-section>
-                          <q-item-label class="text-body2">• {{ item }}</q-item-label>
-                        </q-item-section>
-                      </q-item>
-                    </q-list>
-                  </q-card-section>
-                </div>
-
-                <div class="col">
-
-                  <q-card-section>
-                    <div class="float-right">
-                      <q-btn @click="onClickAddClaim(criteria)" color="grey-14" text-color="white" icon="add" size="sm">
-                      </q-btn>
-                    </div>
-                    <div class="text-subtitle2 q-pb-md">Claims:</div>
-
-                    <q-list dense>
-                      <div v-for="claim in criteria.claims" :key="claim.id">
+            <!-- Criteria definitions -->
+            <q-expansion-item v-for="criteria in section?.criteria" :key="criteria.id" expand-separator
+              :label="criteria.id + ' ' + criteria.title" default-opened :header-inset-level="0.5"
+              header-class="bg-grey-1 text-h6">
+              <!-- Criteria details -->
+              <q-card>
+                <div class="row q-pl-xl">
+                  <div class="col">
+                    <div class="text-subtitle2">Guidance:</div>
+                    <q-card-section>
+                      <q-list dense v-for="item in criteria.guidance" :key="item">
                         <q-item>
                           <q-item-section>
-                            <q-chip clickable @click="onClickClaim(claim, criteria)"
-                              :color="getClaimColor(claim.source)" text-color="white"
-                              :icon="claim.confirmed ? 'check' : 'question_mark'" size="md" class="glossy">
-                              {{ claim.evidence }} {{ claim.claimDate ? `(${claim.claimDate})` : '' }}
-                            </q-chip>
+                            <q-item-label class="text-body2">• {{ item }}</q-item-label>
                           </q-item-section>
                         </q-item>
+                      </q-list>
+                    </q-card-section>
+                  </div>
+
+                  <div class="col">
+
+                    <q-card-section>
+                      <div class="float-right">
+                        <q-btn @click="onClickAddClaim(criteria)" color="grey-14" text-color="white" icon="add"
+                          size="sm">
+                        </q-btn>
                       </div>
-                    </q-list>
-                  </q-card-section>
+                      <div class="text-subtitle2 q-pb-md">Claims:</div>
+
+                      <q-list dense>
+                        <div v-for="claim in criteria.claims" :key="claim.id">
+                          <q-item>
+                            <q-item-section>
+                              <q-chip clickable @click="onClickClaim(claim, criteria)"
+                                :color="getClaimColor(claim.source)" text-color="white"
+                                :icon="claim.confirmed ? 'check' : 'question_mark'" size="md" class="glossy">
+                                {{ claim.evidence }} {{ claim.claimDate ? `(${claim.claimDate})` : '' }}
+                              </q-chip>
+                            </q-item-section>
+                          </q-item>
+                        </div>
+                      </q-list>
+                    </q-card-section>
+                  </div>
                 </div>
-              </div>
-            </q-card>
+              </q-card>
+            </q-expansion-item>
           </q-expansion-item>
         </q-expansion-item>
       </q-list>
@@ -148,11 +158,24 @@
         </div>
         <q-card-section>
           <div class="text-h6">Or...</div>
-          <div class="text-subtitle2">If this is your first time here select a templates</div>
-          <q-list>
-            <q-item clickable @click="loadTemplate('cst-l3')" class="bg-grey-4">
+          <div class="text-subtitle2">If this is your first time here select a template</div>
+          <q-list bordered>
+            <q-item clickable @click="loadTemplate('cst-l3')">
               <q-item-section>
                 <q-item-label><b>CST-L3</b> Level 3 Certificate in Counselling Studies (2024-2025)</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <q-item clickable @click="loadTemplate('L4-1-0925-127CC')">
+              <q-item-section>
+                <q-item-label><b>L4-1-0925-127CC</b> Level 4 Diploma in Integrative Therapeutic Counselling: Year 1
+                  (2025-2026)</q-item-label>
+              </q-item-section>
+            </q-item>
+
+            <q-item clickable @click="loadTemplate('tutorial')">
+              <q-item-section>
+                <q-item-label><b>TUTORIAL</b> Learn how to use this application</q-item-label>
               </q-item-section>
             </q-item>
           </q-list>
@@ -280,9 +303,12 @@ function saveClaim() {
   }
 
   if (claimForm.value.id) {
-    const criteria = criteriaSet.value?.sections.flatMap(section => section.criteria).find(criteria =>
-      criteria.claims.some(existingClaim => existingClaim.id === claimForm.value.id)
-    );
+    const criteria = criteriaSet.value?.units
+      .flatMap(unit => unit.sections)
+      .flatMap(section => section.criteria)
+      .find(criteria =>
+        criteria.claims.some(existingClaim => existingClaim.id === claimForm.value.id)
+      );
     if (criteria) {
       const existingClaim = criteria.claims.find(existingClaim => existingClaim.id === claimForm.value.id);
       if (existingClaim) {
@@ -308,9 +334,12 @@ function saveClaim() {
 }
 
 function deleteClaim() {
-  const criteria = criteriaSet.value?.sections.flatMap(section => section.criteria).find(criteria =>
-    criteria.claims.some(existingClaim => existingClaim.id === claimForm.value.id)
-  );
+  const criteria = criteriaSet.value?.units
+    .flatMap(unit => unit.sections)
+    .flatMap(section => section.criteria)
+    .find(criteria =>
+      criteria.claims.some(existingClaim => existingClaim.id === claimForm.value.id)
+    );
   if (criteria) {
     criteria.claims = criteria.claims.filter(existingClaim => existingClaim.id !== claimForm.value.id);
   }
@@ -348,15 +377,23 @@ function getSectionProgress(section: { criteria: { claims: Claim[] }[] }): numbe
 
 function getOverallProgress(): number {
   if (!criteriaSet.value) return 0;
-  const totalCriteria = criteriaSet.value.sections.reduce((total, section) => {
-    return total + section.criteria.length * 2;
+  const totalCriteria = criteriaSet.value.units.reduce((unitTotal, unit) => {
+    return unitTotal + unit.sections.reduce((sectionTotal, section) => {
+      return sectionTotal + section.criteria.length * 2;
+    }, 0);
   }, 0);
-  const completedCriteria = criteriaSet.value.sections.reduce((total, section) => {
-    return total + section.criteria.reduce((sectionTotal, criteria) => {
-      return sectionTotal + Math.min(criteria.claims.length, 2);
+  const completedCriteria = criteriaSet.value.units.reduce((unitTotal, unit) => {
+    return unitTotal + unit.sections.reduce((sectionTotal, section) => {
+      return sectionTotal + section.criteria.reduce((criteriaTotal, criteria) => {
+        return criteriaTotal + Math.min(criteria.claims.length, 2);
+      }, 0);
     }, 0);
   }, 0);
   return totalCriteria > 0 ? completedCriteria / totalCriteria : 0;
+}
+
+function isUnitComplete(unit: { sections: CriteriaSection[] }): boolean {
+  return unit.sections.every(section => isSectionComplete(section));
 }
 
 function isSectionComplete(section: CriteriaSection): boolean {
@@ -381,6 +418,18 @@ function getClaimColor(source: ClaimSource): string {
 
 async function loadTemplate(templateName: string): Promise<void> {
   criteriaSet.value = await loadCriteriaSet(templateName);
+  if (criteriaSet.value && !criteriaSet.value?.sections) {
+    criteriaSet.value.sections = []
+  }
+  if (criteriaSet.value && !criteriaSet.value?.units) {
+    criteriaSet.value.units = [
+      {
+        id: 1,
+        learningOutcome: criteriaSet.value.courseTitle,
+        sections: criteriaSet.value.sections
+      }
+    ]
+  }
   if (criteriaSet.value) {
     saveFileName.value = criteriaSet.value?.courseCode;
     criteriaSetStore.setCriteriaSet(criteriaSet.value);
@@ -444,18 +493,21 @@ function exportCriteriaFile() {
 function exportCsv() {
   const rows = [[criteriaSet.value?.courseCode || '']];
 
-  criteriaSet.value?.sections.forEach(section => {
-    // Add section header
-    rows.push(['LEARNING OUTCOME:', `${section.id} ${section.learningOutcome}`]);
+  criteriaSet.value?.units.forEach(unit => {
+    rows.push([`UNIT: ${unit.id} ${unit.learningOutcome}`]);
+    unit.sections.forEach(section => {
+      // Add section header
+      rows.push(['LEARNING OUTCOME:', `${section.id} ${section.learningOutcome}`]);
 
-    // Add column headings
-    rows.push(['Assessment criteria', 'Candidate guidance to criteria', 'Portfolio reference']);
+      // Add column headings
+      rows.push(['Assessment criteria', 'Candidate guidance to criteria', 'Portfolio reference']);
 
-    // Add criteria rows
-    section.criteria.forEach(criteria => {
-      const guidance = criteria.guidance.map(item => `• ${item}`).join('\n');
-      const claims = criteria.claims.map(claim => `${claim.evidence} ${claim.claimDate ? `${claim.claimDate}` : ''} (${claim.source}) ${claim.page ? `p${claim.page}` : ''}`).join('\n');
-      rows.push([`${criteria.id} ${criteria.title}`, guidance, claims]);
+      // Add criteria rows
+      section.criteria.forEach(criteria => {
+        const guidance = criteria.guidance.map(item => `• ${item}`).join('\n');
+        const claims = criteria.claims.map(claim => `${claim.evidence} ${claim.claimDate ? `${claim.claimDate}` : ''} (${claim.source}) ${claim.page ? `p${claim.page}` : ''}`).join('\n');
+        rows.push([`${criteria.id} ${criteria.title}`, guidance, claims]);
+      });
     });
   });
 
