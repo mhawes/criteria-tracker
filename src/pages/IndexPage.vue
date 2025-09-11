@@ -105,7 +105,7 @@
           <!-- Sections -->
           <q-expansion-item v-for="section in unit?.sections" :key="section.id" expand-separator
             :label="section.id + ' ' + section.learningOutcome" :icon="isSectionComplete(section) ? 'check' : 'cancel'"
-            default-opened :header-class="$q.screen.gt.sm ? 'bg-grey-3 text-h5' : 'bg-grey-3'">
+            :header-class="$q.screen.gt.sm ? 'bg-grey-3 text-h5' : 'bg-grey-3'">
 
             <!-- Section progress -->
             <div class="q-pa-md text-subtitle2">
@@ -121,8 +121,7 @@
 
             <!-- Criteria definitions -->
             <q-expansion-item v-for="criteria in section?.criteria" :key="criteria.id" expand-separator
-              :label="criteria.id + ' ' + criteria.title" default-opened
-              :icon="criteria.claims.length >= 2 ? 'check' : 'cancel'"
+              :label="criteria.id + ' ' + criteria.title" :icon="criteria.claims.length >= 2 ? 'check' : 'cancel'"
               :header-class="$q.screen.gt.sm ? 'bg-grey-1 text-h6' : 'bg-grey-1'">
               <!-- Criteria details -->
               <q-card>
@@ -458,11 +457,8 @@ function saveClaim() {
       }
     }
   } else {
-    alert('Adding new claim');
     const newClaim = claimForm.value;
-    alert(newClaim.evidence);
     newClaim.id = uuidv4();
-    alert(newClaim.id);
     const criteria = selectedCriteria.value;
     if (!criteria) {
       console.error('No criteria selected for new claim');
