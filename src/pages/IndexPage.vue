@@ -5,7 +5,7 @@
       <q-btn outline icon-right="download" label="CSV" color="white"
         @click="isSaveDialogOpen = true; saveFileFormat = 'csv'" />
       <q-btn outline icon-right="save" label="Save" color="white"
-        @click="isSaveDialogOpen = true; saveFileFormat = 'json'" />
+        @click="isSaveDialogOpen = true; saveFileFormat = 'localStorage'" />
     </q-page-sticky>
 
     <!-- Main section -->
@@ -148,6 +148,29 @@
     <div v-else class="q-pa-md">
       <q-card class="q-mb-xs">
         <q-card-section>
+          <div class="text-h5">Welcome to Criteria Tracker</div>
+          <div class="text-subtitle2">A simple tool to help you track your progress against your course criteria.</div>
+        </q-card-section>
+
+        <q-card-section v-if="localStorageCriteriaSets.length > 0">
+          <div class="text-h6">Load from browser storage...</div>
+          <div class="text-subtitle2">If you have previously saved your criteria file in the browser local storage you
+            can load it
+            here.</div>
+          <q-table :rows="localStorageCriteriaSets" :columns="[
+            { name: 'fileName', label: 'File Name', field: 'fileName', align: 'left' },
+            { name: 'action', label: '', field: 'action', align: 'center' }
+          ]" row-key="fileName" @row-click="(_, row) => loadFromLocalStorage(row.fileName)">
+            <template v-slot:body-cell-action="props">
+              <q-td :props="props">
+                <q-btn color="negative" icon="delete" size="sm" flat
+                  @click.stop="deleteFileName = props.row.fileName; isDeleteDialogOpen = true" />
+              </q-td>
+            </template>
+          </q-table>
+        </q-card-section>
+
+        <q-card-section>
           <div class="text-h6">Upload a criteria file...</div>
           <div class="text-subtitle2">The file should be in .json format, check your downloads folder. </div>
         </q-card-section>
@@ -185,16 +208,24 @@
 
     <!-- Save file dialog -->
     <q-dialog v-model="isSaveDialogOpen" persistent>
-      <q-card style="min-width: 400px">
+      <q-card>
         <q-card-section>
           <div class="text-h6">Save Criteria File</div>
+        </q-card-section>
+
+        <q-card-section class="text-subtitle2">
+          Choose how you would like to save your criteria file.
+        </q-card-section>
+
+        <q-card-section v-if="saveFileFormat === 'localStorage'" class="text-subtitle2">
+
         </q-card-section>
 
         <q-card-section>
           <q-input v-model="saveFileName" label="File Name" placeholder="Enter file name" />
           <q-select v-model="saveFileFormat"
-            :options="[{ label: 'JSON', value: 'json' }, { label: 'CSV', value: 'csv' }]" label="File Format"
-            emit-value />
+            :options="[{ label: 'Local storage (In the browser)', value: 'localStorage' }, { label: 'JSON', value: 'json' }, { label: 'CSV', value: 'csv' }]"
+            label="File Format" emit-value />
         </q-card-section>
 
         <q-card-actions align="right">
@@ -206,7 +237,7 @@
 
     <!-- Claim dialog -->
     <q-dialog v-model="isClaimDialogOpen" persistent>
-      <q-card style="min-width: 400px">
+      <q-card>
         <q-card-section>
           <div class="float-right">
             <q-btn v-if="claimForm.id && claimForm.id != ''" flat icon-right="delete" label="Delete" color="negative"
@@ -249,6 +280,25 @@
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Delete local storage criteria set dialog -->
+    <q-dialog v-model="isDeleteDialogOpen" persistent>
+      <q-card style="min-width: 400px">
+        <q-card-section>
+          <div class="text-h6">Delete Criteria File</div>
+        </q-card-section>
+        <q-card-section>
+          <div class="text-subtitle2">
+            Are you sure you want to delete this file from local storage? This action cannot be undone.
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn label="Cancel" color="secondary" @click="isDeleteDialogOpen = false" />
+          <q-btn label="Delete" color="negative" @click="deleteFromLocalStorage(saveFileName)" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
+
   </q-page>
 </template>
 
@@ -264,8 +314,10 @@ const criteriaSet = ref<CriteriaSet | undefined>();
 const criteriaSetFile = ref<File | null>(null);
 const isClaimDialogOpen = ref(false);
 const isSaveDialogOpen = ref(false);
-const saveFileFormat = ref('json');
+const isDeleteDialogOpen = ref(false);
+const saveFileFormat = ref('localStorage');
 const saveFileName = ref('');
+const deleteFileName = ref('');
 const selectedCriteria = ref<CriteriaDefinition | undefined>();
 const claimForm = ref<Claim>({
   id: '',
@@ -275,6 +327,7 @@ const claimForm = ref<Claim>({
   page: undefined,
   source: ClaimSource.Written,
 });
+const localStorageCriteriaSets = ref(loadAllFromLocalStorage());
 
 const evidenceField = ref<InstanceType<typeof QInput> | null>(null);
 
@@ -470,6 +523,8 @@ function saveCriteriaFile(): void {
   if (criteriaSet.value) {
     if (saveFileFormat.value === 'csv') {
       exportCsv();
+    } else if (saveFileFormat.value === 'localStorage') {
+      saveInLocalStorage();
     } else {
       exportCriteriaFile();
     }
@@ -519,5 +574,57 @@ function exportCsv() {
   link.download = `${saveFileName.value}.csv`;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+function saveInLocalStorage() {
+  if (criteriaSet.value) {
+    localStorage.setItem(saveFileName.value, JSON.stringify(criteriaSet.value));
+  }
+}
+
+function loadAllFromLocalStorage() {
+  const keys = Object.keys(localStorage);
+  if (keys.length === 0) {
+    return [];
+  }
+
+  return keys.map(key => {
+    const data = localStorage.getItem(key);
+    if (data) {
+      try {
+        return { fileName: key, criteriaSet: JSON.parse(data) as CriteriaSet };
+      } catch (error) {
+        console.error('Failed to parse criteria set from local storage:', error);
+        return null;
+      }
+    }
+    return null;
+  }).filter(item => item !== null) as { fileName: string; criteriaSet: CriteriaSet }[];
+}
+
+function loadFromLocalStorage(fileName: string): void {
+  const data = localStorage.getItem(fileName);
+  if (data) {
+    try {
+      criteriaSet.value = JSON.parse(data);
+      if (criteriaSet.value) {
+        criteriaSetStore.setCriteriaSet(criteriaSet.value);
+        saveFileName.value = fileName;
+      }
+    } catch (error) {
+      console.error('Failed to parse criteria set from local storage:', error);
+    }
+  } else {
+    console.error('No data found in local storage for the given file name.');
+  }
+}
+
+function deleteFromLocalStorage(fileName: string): void {
+  localStorage.removeItem(fileName);
+  if (criteriaSet?.value && saveFileName.value === fileName) {
+    criteriaSet.value = undefined;
+    saveFileName.value = '';
+  }
+  localStorageCriteriaSets.value = loadAllFromLocalStorage();
 }
 </script>
