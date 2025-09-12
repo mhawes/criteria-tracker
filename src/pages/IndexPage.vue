@@ -53,8 +53,13 @@
       </q-card>
 
       <q-list bordered class="rounded-borders">
+        <!-- Filter -->
+        <q-input v-model="filter" outlined dense debounce="300"
+          placeholder="Filter... (e.g. '7.2.1', 'Agency', 'Learning review 4', ...)" clearable
+          class="q-mb-md full-width" clear-icon="clear" />
+
         <!-- Units -->
-        <q-expansion-item v-for="unit in criteriaSet?.units" :key="unit.id" expand-separator
+        <q-expansion-item v-for="unit in criteriaSet?.units.filter(u => u._visible)" :key="unit.id" expand-separator
           :label="unit.id + ' ' + unit.learningOutcome" :icon="isUnitComplete(unit) ? 'check' : 'cancel'"
           :header-class="$q.screen.gt.sm ? 'bg-grey-5 text-h4' : 'bg-grey-5'">
 
@@ -121,7 +126,7 @@
           </div>
 
           <!-- Sections -->
-          <q-expansion-item v-for="section in unit?.sections" :key="section.id" expand-separator
+          <q-expansion-item v-for="section in unit?.sections.filter(s => s._visible)" :key="section.id" expand-separator
             :label="section.id + ' ' + section.learningOutcome" :icon="isSectionComplete(section) ? 'check' : 'cancel'"
             :header-class="$q.screen.gt.sm ? 'bg-grey-3 text-h5' : 'bg-grey-3'">
 
@@ -138,8 +143,9 @@
             </div>
 
             <!-- Criteria definitions -->
-            <q-expansion-item v-for="criteria in section?.criteria" :key="criteria.id" expand-separator
-              :label="criteria.id + ' ' + criteria.title" :icon="criteria.claims.length >= 2 ? 'check' : 'cancel'"
+            <q-expansion-item v-for="criteria in section?.criteria.filter(c => c._visible)" :key="criteria.id"
+              expand-separator :label="criteria.id + ' ' + criteria.title"
+              :icon="criteria.claims.length >= 2 ? 'check' : 'cancel'"
               :header-class="$q.screen.gt.sm ? 'bg-grey-1 text-h6' : 'bg-grey-1'">
               <!-- Criteria details -->
               <q-card>
@@ -342,7 +348,7 @@
           <q-input v-model="claimForm.evidence" label="Evidence" :rules="[
             value => !!value || 'Evidence is required',
             value => value.length <= 100 || 'Evidence must be less than 100 characters'
-          ]" ref="evidence" autofocus>
+          ]" ref="evidence">
             <template v-slot:append>
               <q-icon name="auto_awesome" class="cursor-pointer" color="pink">
                 <q-popup-proxy cover transition-show="scale" transition-hide="scale" v-model="showEvidenceSuggestions">
@@ -430,7 +436,7 @@
 <script setup lang="ts">
 import type { CriteriaSet, Claim, CriteriaDefinition, CriteriaSection } from 'src/components/models';
 import { ClaimSource } from 'src/components/models';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { useCriteriaSetStore } from 'src/stores/criteria-set-store';
 import { QInput } from 'quasar';
 import { v4 as uuidv4 } from 'uuid';
@@ -447,6 +453,7 @@ const changedSinceLastSave = ref(false);
 const saveFileFormat = ref('localStorage');
 const saveFileName = ref('');
 const deleteFileName = ref('');
+const filter = ref('');
 const selectedCriteria = ref<CriteriaDefinition | undefined>();
 const claimForm = ref<Claim>({
   id: '',
@@ -463,6 +470,33 @@ const claimSourceOptions = [
   { label: 'Testimony', value: ClaimSource.Testimony },
   { label: 'Tutor Observation', value: ClaimSource.TutorObservation },
 ];
+
+watch(filter, (newFilter: string) => {
+  if (newFilter === undefined || newFilter === null || newFilter.trim() === '') {
+    setAllVisible();
+    return;
+  }
+
+  if (criteriaSet.value) {
+    criteriaSet.value.units.forEach(unit => {
+      unit.sections.forEach(section => {
+        section.criteria.forEach(criteria => {
+          const matches =
+            criteria.id.startsWith(newFilter) ||
+            criteria.title.toLowerCase().includes(newFilter.toLowerCase()) ||
+            criteria.guidance.join().toLowerCase().includes(newFilter.toLowerCase()) ||
+            criteria.claims.some(claim =>
+              claim.evidence.toLowerCase().includes(newFilter.toLowerCase()) ||
+              (claim.claimDate && claim.claimDate.includes(newFilter))
+            );
+          criteria._visible = matches || newFilter === '';
+        });
+        section._visible = section.criteria.some(c => c._visible);
+      });
+      unit._visible = unit.sections.some(s => s._visible);
+    });
+  }
+}, { immediate: true });
 
 function openClaimDialog(criteria: CriteriaDefinition) {
   selectedCriteria.value = criteria;
@@ -600,7 +634,8 @@ async function loadTemplate(templateName: string): Promise<void> {
   if (criteriaSet.value && !criteriaSet.value?.units) {
     criteriaSet.value.units = [
       {
-        id: 1,
+        _visible: true,
+        id: "1",
         learningOutcome: criteriaSet.value.courseTitle,
         sections: criteriaSet.value.sections
       }
@@ -609,6 +644,7 @@ async function loadTemplate(templateName: string): Promise<void> {
   if (criteriaSet.value) {
     saveFileName.value = criteriaSet.value?.courseCode;
     criteriaSetStore.setCriteriaSet(criteriaSet.value);
+    setAllVisible();
   }
 }
 
@@ -634,12 +670,27 @@ function uploadFile(file: File | null): void {
         criteriaSet.value = json;
         criteriaSetStore.setCriteriaSet(json);
         changedSinceLastSave.value = false;
+        setAllVisible();
       } catch (error) {
         console.error('Invalid JSON file:', error);
       }
     };
     reader.readAsText(file);
     saveFileName.value = file.name.replace('.json', '');
+  }
+}
+
+function setAllVisible(): void {
+  if (criteriaSet.value) {
+    criteriaSet.value.units.forEach(unit => {
+      unit._visible = true;
+      unit.sections.forEach(section => {
+        section._visible = true;
+        section.criteria.forEach(criteria => {
+          criteria._visible = true;
+        });
+      });
+    });
   }
 }
 
@@ -753,6 +804,8 @@ function loadFromLocalStorage(fileName: string): void {
       if (criteriaSet.value) {
         criteriaSetStore.setCriteriaSet(criteriaSet.value);
         saveFileName.value = fileName;
+        setAllVisible();
+        changedSinceLastSave.value = false;
       }
     } catch (error) {
       console.error('Failed to parse criteria set from local storage:', error);
@@ -763,7 +816,6 @@ function loadFromLocalStorage(fileName: string): void {
 }
 
 function deleteFromLocalStorage(fileName: string): void {
-  console.log(`Deleting criteria set with file name: ${fileName}`);
   localStorage.removeItem(fileName);
   if (criteriaSet?.value && deleteFileName.value === fileName) {
     criteriaSet.value = undefined;

@@ -14,20 +14,23 @@ export interface Claim {
 }
 
 export interface CriteriaDefinition {
-  id: number;
+  _visible: boolean;
+  id: string;
   title: string;
   guidance: string[];
   claims: Claim[];
 }
 
 export interface CriteriaUnit {
-  id: number;
+  _visible: boolean;
+  id: string;
   learningOutcome: string;
   sections: CriteriaSection[];
 }
 
 export interface CriteriaSection {
-  id: number;
+  _visible: boolean;
+  id: string;
   learningOutcome: string;
   criteria: CriteriaDefinition[];
 }
