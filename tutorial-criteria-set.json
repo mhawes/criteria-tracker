@@ -33,7 +33,7 @@
             "You can delete claims using the delete button when you view it.",
             "Claims have a evidence field, a date field, a confirmed checkbox, and a source field.",
             "Make sure to save your changes after editing or adding claims.",
-            "The pink stars are there to help you enter information quickly. e.g. clicking the star next to 'Written' will give you suggestions for evidence and set the source to 'Written'."
+            "The pink stars are there to help you enter information quickly. e.g. clicking the star on the Evidence field will give you suggestions for evidence and set the source to 'Written'."
           ],
           "claims": []
         },
