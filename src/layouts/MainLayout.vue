@@ -3,7 +3,7 @@
     <q-header elevated>
       <q-toolbar>
         <q-toolbar-title>
-          Criteria Tracker
+          {{ $q.screen.gt.sm ? 'Criteria Tracker' : 'CT' }}
         </q-toolbar-title>
       </q-toolbar>
     </q-header>

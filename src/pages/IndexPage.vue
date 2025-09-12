@@ -1,12 +1,30 @@
 <template>
   <q-page class="row items-center justify-evenly">
     <!-- Buttons -->
-    <q-page-sticky v-if="criteriaSet" position="top-right" :offset="[18, -43]" class="z-top">
+    <q-page-sticky v-if="criteriaSet" position="top-right" :offset="[1, -43]" class="z-top">
       <q-btn outline icon-right="download" label="CSV" color="white"
         @click="isSaveDialogOpen = true; saveFileFormat = 'csv'" />
       <q-btn outline icon-right="save" label="Save" color="white"
         @click="isSaveDialogOpen = true; saveFileFormat = 'localStorage'" />
+      <q-btn outline icon-right="home" color="white" @click="checkUnsavedChanges" />
     </q-page-sticky>
+
+    <q-dialog v-model="isUnsavedDialogOpen" persistent>
+      <q-card style="min-width: 400px">
+        <q-card-section>
+          <div class="text-h6">Unsaved Changes</div>
+        </q-card-section>
+        <q-card-section>
+          <div class="text-subtitle2">
+            <b>You have unsaved changes which will be lost.</b> Are you sure you'd like to head home?
+          </div>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn label="Cancel" color="secondary" @click="isUnsavedDialogOpen = false" />
+          <q-btn label="OK" color="primary" @click="criteriaSet = undefined; isUnsavedDialogOpen = false" />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
     <!-- Main section -->
     <div v-if="criteriaSet" class="full-width">
@@ -211,7 +229,8 @@
       <q-card class="q-mb-xs">
         <q-card-section>
           <div class="text-h5">Welcome to Criteria Tracker</div>
-          <div class="text-subtitle2">A simple tool to help you track your progress against your course criteria.</div>
+          <div class="text-subtitle2">A simple tool to help you track your progress against your course criteria.
+          </div>
         </q-card-section>
 
         <q-card-section v-if="localStorageCriteriaSets.length > 0">
@@ -279,15 +298,26 @@
           Choose how you would like to save your criteria file.
         </q-card-section>
 
-        <q-card-section v-if="saveFileFormat === 'localStorage'" class="text-subtitle2">
-
-        </q-card-section>
-
         <q-card-section>
           <q-input v-model="saveFileName" label="File Name" placeholder="Enter file name" />
           <q-select v-model="saveFileFormat"
             :options="[{ label: 'Local storage (Kept in the browser)', value: 'localStorage' }, { label: 'JSON (Download folder)', value: 'json' }, { label: 'CSV (Download folder)', value: 'csv' }]"
             label="File Format" emit-value />
+        </q-card-section>
+
+        <q-card-section v-if="saveFileFormat === 'localStorage'" class="text-bold">
+          This will save the file in your browser local storage. It will only be available on this device and browser
+          but will appear on the home page when you return.
+        </q-card-section>
+
+        <q-card-section v-if="saveFileFormat === 'json'" class="text-bold">
+          This will downlaod the file to your downloads folder in JSON format. You can re-upload it later.
+        </q-card-section>
+
+        <q-card-section v-if="saveFileFormat === 'csv'" class="text-bold">
+          This will downlaod the file to your downloads folder in CSV format.
+          You can open it in a spreadsheet program to prepare for your portfolio.
+          You can't reimport it later!!! Use json or local storage to save your progress.
         </q-card-section>
 
         <q-card-actions align="right">
@@ -389,7 +419,7 @@
         </q-card-section>
         <q-card-actions align="right">
           <q-btn label="Cancel" color="secondary" @click="isDeleteDialogOpen = false" />
-          <q-btn label="Delete" color="negative" @click="deleteFromLocalStorage(saveFileName)" />
+          <q-btn label="Delete" color="negative" @click="deleteFromLocalStorage(deleteFileName)" />
         </q-card-actions>
       </q-card>
     </q-dialog>
@@ -411,7 +441,9 @@ const criteriaSetFile = ref<File | null>(null);
 const isClaimDialogOpen = ref(false);
 const isSaveDialogOpen = ref(false);
 const isDeleteDialogOpen = ref(false);
+const isUnsavedDialogOpen = ref(false);
 const showEvidenceSuggestions = ref(false);
+const changedSinceLastSave = ref(false);
 const saveFileFormat = ref('localStorage');
 const saveFileName = ref('');
 const deleteFileName = ref('');
@@ -471,6 +503,7 @@ function saveClaim() {
   if (criteriaSet.value) {
     criteriaSetStore.setCriteriaSet(criteriaSet.value);
   }
+  changedSinceLastSave.value = true;
   closeClaimDialog();
 }
 
@@ -488,6 +521,7 @@ function deleteClaim() {
   if (criteriaSet.value) {
     criteriaSetStore.setCriteriaSet(criteriaSet.value);
   }
+  changedSinceLastSave.value = true;
   closeClaimDialog();
 }
 
@@ -558,6 +592,7 @@ function getClaimColor(source: ClaimSource): string {
 }
 
 async function loadTemplate(templateName: string): Promise<void> {
+  changedSinceLastSave.value = false;
   criteriaSet.value = await loadCriteriaSet(templateName);
   if (criteriaSet.value && !criteriaSet.value?.sections) {
     criteriaSet.value.sections = []
@@ -579,7 +614,7 @@ async function loadTemplate(templateName: string): Promise<void> {
 
 async function loadCriteriaSet(templateName: string): Promise<CriteriaSet | undefined> {
   try {
-    const response = await fetch(`/${templateName}-criteria-set.json`);
+    const response = await fetch(`/criteria-tracker/${templateName}-criteria-set.json`);
     if (!response.ok) {
       throw new Error(`Failed to fetch criteria-set.json: ${response.statusText}`);
     }
@@ -598,6 +633,7 @@ function uploadFile(file: File | null): void {
         const json = JSON.parse(event.target?.result as string);
         criteriaSet.value = json;
         criteriaSetStore.setCriteriaSet(json);
+        changedSinceLastSave.value = false;
       } catch (error) {
         console.error('Invalid JSON file:', error);
       }
@@ -616,6 +652,7 @@ function saveCriteriaFile(): void {
     } else {
       exportCriteriaFile();
     }
+    changedSinceLastSave.value = false;
   } else {
     console.error('No criteria set to save.');
   }
@@ -700,6 +737,14 @@ function loadAllFromLocalStorage() {
   }).filter(item => item !== null) as { fileName: string; criteriaSet: CriteriaSet }[];
 }
 
+function checkUnsavedChanges() {
+  if (criteriaSet?.value && changedSinceLastSave.value) {
+    isUnsavedDialogOpen.value = true;
+  } else {
+    criteriaSet.value = undefined;
+  }
+}
+
 function loadFromLocalStorage(fileName: string): void {
   const data = localStorage.getItem(fileName);
   if (data) {
@@ -718,11 +763,15 @@ function loadFromLocalStorage(fileName: string): void {
 }
 
 function deleteFromLocalStorage(fileName: string): void {
+  console.log(`Deleting criteria set with file name: ${fileName}`);
   localStorage.removeItem(fileName);
-  if (criteriaSet?.value && saveFileName.value === fileName) {
+  if (criteriaSet?.value && deleteFileName.value === fileName) {
     criteriaSet.value = undefined;
-    saveFileName.value = '';
+    deleteFileName.value = '';
+  } else {
+    console.error('No criteria set loaded or file name does not match.');
   }
+  isDeleteDialogOpen.value = false;
   localStorageCriteriaSets.value = loadAllFromLocalStorage();
 }
 </script>

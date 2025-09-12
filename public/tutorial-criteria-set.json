@@ -12,13 +12,12 @@
           "title": "Navigate the Criteria Tracker interface",
           "guidance": [
             "Familiarize yourself with the main sections of the application, including the dashboard, criteria sets, and progress tracking.",
-            "Learn how to access a specific criteria set by selecting it from the list of available sets.",
-            "Understand the layout of a criteria set, including sections, criteria, and guidance."
+            "Learn how to access a specific criteria set by selecting it from the list of available sets."
           ],
           "claims": [
             {
               "id": "3007ba54-5fea-4885-9591-ecbc0923a00b",
-              "evidence": "Example evidence",
+              "evidence": "Example evidence 1",
               "claimDate": "2024/10/24",
               "confirmed": true,
               "source": "Written"
@@ -29,29 +28,22 @@
           "id": 1.2,
           "title": "Track progress on a specific criterion",
           "guidance": [
-            "Select a criterion to view its details, including the title, guidance, and any associated claims.",
-            "Mark a criterion as 'in progress' or 'completed' to reflect your current status.",
-            "Add personal notes or reflections to a criterion to document your learning process."
-          ],
-          "claims": []
-        },
-        {
-          "id": 1.3,
-          "title": "Add claims to demonstrate evidence of learning",
-          "guidance": [
-            "Understand what constitutes a claim and how it supports your progress.",
-            "Use the 'Add Claim' feature to upload evidence, such as documents, images, or text descriptions.",
-            "Review and edit claims to ensure they align with the criterion's requirements."
+            "Click on a criteria to view or edit its details.",
+            "There is also a + button to add a new claim.",
+            "You can delete claims using the delete button when you view it.",
+            "Claims have a evidence field, a date field, a confirmed checkbox, and a source field.",
+            "Make sure to save your changes after editing or adding claims.",
+            "The pink stars are there to help you enter information quickly. e.g. clicking the star on the Evidence field will give you suggestions for evidence and set the source to 'Written'."
           ],
           "claims": []
         },
         {
           "id": 1.4,
-          "title": "Generate a progress report",
+          "title": "Generate a report",
           "guidance": [
-            "Learn how to generate a report summarizing your progress across all criteria.",
-            "Customize the report to include specific sections, criteria, or claims.",
-            "Export the report as a PDF or share it directly with your instructor or mentor."
+            "You can export your progress to a CSV file in more or less the CPCAB format.",
+            "Use this when you're ready to submit your evidence and add it to your portfolio.",
+            "You can use a tool like MS Excel or Google Sheets to open the CSV file and format it as needed."
           ],
           "claims": []
         }
