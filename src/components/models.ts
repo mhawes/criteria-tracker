@@ -4,6 +4,19 @@ export enum ClaimSource {
   TutorObservation = 'TutorObservation',
 }
 
+export interface CriteriaClaim {
+  criteriaId: string;
+  page: number | undefined;
+}
+
+export interface WorkSubmission {
+  evidence: string;
+  claimDate: string;
+  source: ClaimSource;
+  confirmed: boolean;
+  criteriaClaims: CriteriaClaim[];
+}
+
 export interface Claim {
   id: string;
   source: ClaimSource;

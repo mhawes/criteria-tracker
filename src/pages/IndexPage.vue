@@ -1,14 +1,5 @@
 <template>
-  <q-page class="row items-center justify-evenly">
-    <!-- Buttons -->
-    <q-page-sticky v-if="criteriaSet" position="top-right" :offset="[1, -43]" class="z-top">
-      <q-btn outline icon-right="download" label="CSV" color="white"
-        @click="isSaveDialogOpen = true; saveFileFormat = 'csv'" />
-      <q-btn outline icon-right="save" label="Save" color="white"
-        @click="isSaveDialogOpen = true; saveFileFormat = 'localStorage'" />
-      <q-btn outline icon-right="home" color="white" @click="checkUnsavedChanges" />
-    </q-page-sticky>
-
+  <q-page>
     <q-dialog v-model="isUnsavedDialogOpen" persistent>
       <q-card style="min-width: 400px">
         <q-card-section>
@@ -27,9 +18,9 @@
     </q-dialog>
 
     <!-- Main section -->
-    <div v-if="criteriaSet" class="full-width">
+    <div v-if="criteriaSet" class="full-width float-top">
       <!-- Summary card -->
-      <q-card class="q-mb-md">
+      <q-card class="q-mb-md q-pt-xl">
         <q-card-section>
           <div class="text-h6">{{ criteriaSet?.courseTitle }} ({{ criteriaSet?.courseYear }})</div>
           <div class="text-subtitle2">{{ criteriaSet?.courseCode }}</div>
@@ -60,8 +51,44 @@
 
         <!-- Units -->
         <q-expansion-item v-for="unit in criteriaSet?.units.filter(u => u._visible)" :key="unit.id" expand-separator
-          :label="unit.id + ' ' + unit.learningOutcome" :icon="isUnitComplete(unit) ? 'check' : 'cancel'"
           :header-class="$q.screen.gt.sm ? 'bg-grey-5 text-h4' : 'bg-grey-5'">
+          <template v-slot:header>
+            <div class="row items-center full-width">
+              <q-icon :name="isUnitComplete(unit) ? 'check' : 'cancel'" class="q-mr-sm" />
+              <div class="text-h4" v-if="$q.screen.gt.sm">{{ unit.id + ' ' + unit.learningOutcome }}
+                ({{unit.sections.reduce((total, section) => {
+                  return total + section.criteria.reduce((criteriaTotal, criteria) => {
+                    return criteriaTotal + Math.min(criteria.claims.length, 2);
+                  }, 0);
+                }, 0)}}/{{unit.sections.reduce((total, section) => {
+                  return total + section.criteria.length * 2;
+                }, 0)}})
+              </div>
+              <div class="text-subtitle2" v-else>{{ unit.id + ' ' + unit.learningOutcome }}
+                ({{unit.sections.reduce((total, section) => {
+                  return total + section.criteria.reduce((criteriaTotal, criteria) => {
+                    return criteriaTotal + Math.min(criteria.claims.length, 2);
+                  }, 0);
+                }, 0)}}/{{unit.sections.reduce((total, section) => {
+                  return total + section.criteria.length * 2;
+                }, 0)}})
+              </div>
+              <!-- Unit progress -->
+              <q-linear-progress :color="unit.sections.reduce((total, section) => {
+                return total + section.criteria.reduce((criteriaTotal, criteria) => {
+                  return criteriaTotal + Math.min(criteria.claims.length, 2);
+                }, 0);
+              }, 0) / (unit.sections.reduce((total, section) => {
+                return total + section.criteria.length * 2;
+              }, 0)) >= 1 ? 'positive' : 'primary'" :value="unit.sections.reduce((total, section) => {
+                return total + section.criteria.reduce((criteriaTotal, criteria) => {
+                  return criteriaTotal + Math.min(criteria.claims.length, 2);
+                }, 0);
+              }, 0) / (unit.sections.reduce((total, section) => {
+                return total + section.criteria.length * 2;
+              }, 0))"></q-linear-progress>
+            </div>
+          </template>
 
           <!-- Unit progress -->
           <div class="q-pa-md text-subtitle2">
@@ -100,53 +127,51 @@
               Requires at least one <q-chip label="Tutor Observation"
                 :color="getClaimColor(ClaimSource.TutorObservation)" text-color="white" size="sm" /> claim
             </div>
-
-            <div class="q-pa-md">
-              Progress: ({{unit.sections.reduce((total, section) => {
-                return total + section.criteria.reduce((criteriaTotal, criteria) => {
-                  return criteriaTotal + Math.min(criteria.claims.length, 2);
-                }, 0);
-              }, 0)}}/{{unit.sections.reduce((total, section) => {
-                return total + section.criteria.length * 2;
-              }, 0)}})
-              <q-linear-progress :color="unit.sections.reduce((total, section) => {
-                return total + section.criteria.reduce((criteriaTotal, criteria) => {
-                  return criteriaTotal + Math.min(criteria.claims.length, 2);
-                }, 0);
-              }, 0) / (unit.sections.reduce((total, section) => {
-                return total + section.criteria.length * 2;
-              }, 0)) >= 1 ? 'positive' : 'primary'" :value="unit.sections.reduce((total, section) => {
-                return total + section.criteria.reduce((criteriaTotal, criteria) => {
-                  return criteriaTotal + Math.min(criteria.claims.length, 2);
-                }, 0);
-              }, 0) / (unit.sections.reduce((total, section) => {
-                return total + section.criteria.length * 2;
-              }, 0))"></q-linear-progress>
-            </div>
           </div>
 
           <!-- Sections -->
           <q-expansion-item v-for="section in unit?.sections.filter(s => s._visible)" :key="section.id" expand-separator
-            :label="section.id + ' ' + section.learningOutcome" :icon="isSectionComplete(section) ? 'check' : 'cancel'"
-            :header-class="$q.screen.gt.sm ? 'bg-grey-3 text-h5' : 'bg-grey-3'">
+            :icon="isSectionComplete(section) ? 'check' : 'cancel'"
+            :header-class="$q.screen.gt.sm ? 'bg-grey-3 text-h4' : 'bg-grey-3'" default-opened>
+            <template v-slot:header>
+              <div class="row items-center full-width">
+                <q-icon :name="isSectionComplete(section) ? 'check' : 'cancel'" class="q-mr-sm" />
+                <div class="text-h5" v-if="$q.screen.gt.sm">{{ section.id + ' ' + section.learningOutcome }}
+                  ({{section.criteria.reduce((total, criteria) => {
+                    return total + Math.min(criteria.claims.length, 2);
+                  }, 0)}}/{{ section.criteria.length * 2 }})
+                </div>
+                <div class="text-subtitle2" v-else>{{ section.id + ' ' + section.learningOutcome }}
+                  ({{section.criteria.reduce((total, criteria) => {
+                    return total + Math.min(criteria.claims.length, 2);
+                  }, 0)}}/{{ section.criteria.length * 2 }})</div>
 
-            <!-- Section progress -->
-            <div class="q-pa-md text-subtitle2">
-              <div class="q-pa-md">
-                Progress: ({{section.criteria.reduce((total, criteria) => {
-                  return total + Math.min(criteria.claims.length, 2);
-                }, 0)}}/{{ section.criteria.length * 2 }})
+                <!-- Section progress -->
                 <q-linear-progress :color="getSectionProgress(section) >= 1 ? 'positive' : 'primary'"
                   :value="getSectionProgress(section)"></q-linear-progress>
               </div>
-
-            </div>
+            </template>
 
             <!-- Criteria definitions -->
             <q-expansion-item v-for="criteria in section?.criteria.filter(c => c._visible)" :key="criteria.id"
-              expand-separator :label="criteria.id + ' ' + criteria.title"
-              :icon="criteria.claims.length >= 2 ? 'check' : 'cancel'"
-              :header-class="$q.screen.gt.sm ? 'bg-grey-1 text-h6' : 'bg-grey-1'">
+              expand-separator :header-class="$q.screen.gt.sm ? 'bg-grey-1 text-h6' : 'bg-grey-1'" default-opened>
+
+              <template v-slot:header>
+                <div class="row items-center full-width">
+                  <q-icon :name="criteria.claims.length >= 2 ? 'check' : 'cancel'" class="q-mr-sm" />
+                  <div class="text-h6" v-if="$q.screen.gt.sm">{{ criteria.id + ' ' + criteria.title }}
+                    ({{ criteria.claims.length }}/2)
+                  </div>
+                  <div class="text-subtitle2" v-else>{{ criteria.id + ' ' + criteria.title }}
+                    ({{ criteria.claims.length }}/2)
+                  </div>
+
+                  <!-- Criteria progress -->
+                  <q-linear-progress :color="criteria.claims.length >= 2 ? 'positive' : 'primary'"
+                    :value="Math.min(criteria.claims.length / 2, 1)"></q-linear-progress>
+                </div>
+              </template>
+
               <!-- Criteria details -->
               <q-card>
                 <div :class="$q.screen.gt.sm ? 'row q-pl-xl' : 'row'">
@@ -430,11 +455,139 @@
       </q-card>
     </q-dialog>
 
+    <!-- Buttons -->
+    <q-page-sticky v-if="criteriaSet" position="bottom-right" class="q-pa-md">
+      <q-btn rounded color="accent" size="lg" icon="edit" label="Submit work" @click="isSubmitWorkDialogOpen = true" />
+    </q-page-sticky>
+
+    <q-page-sticky v-if="criteriaSet" position="top-right" :offset="[1, -43]" class="z-top">
+      <q-btn outline icon-right="download" label="CSV" color="white"
+        @click="isSaveDialogOpen = true; saveFileFormat = 'csv'" />
+      <q-btn outline icon-right="save" label="Save" color="white"
+        @click="isSaveDialogOpen = true; saveFileFormat = 'localStorage'" />
+      <q-btn outline icon-right="home" color="white" @click="checkUnsavedChanges" />
+    </q-page-sticky>
+
+    <!-- Submit work dialog -->
+    <q-dialog v-model="isSubmitWorkDialogOpen" persistent>
+      <q-card style="min-width: 400px">
+        <q-card-section>
+          <div class="text-h4">Submit Work</div>
+        </q-card-section>
+
+        <q-card-section>
+          <q-input v-model="submitWorkForm.evidence" label="Evidence" :rules="[
+            value => !!value || 'Evidence is required',
+            value => value.length <= 100 || 'Evidence must be less than 100 characters'
+          ]" ref="evidence">
+            <template v-slot:append>
+              <q-icon name="auto_awesome" class="cursor-pointer" color="pink">
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale" v-model="showEvidenceSuggestions">
+                  <q-banner style="max-width: 600px;">
+                    <q-chip clickable v-for="suggestion in [
+                      { text: 'Learning review', type: ClaimSource.Written },
+                      { text: 'Journal', type: ClaimSource.Written },
+                      { text: 'Presentation', type: ClaimSource.Written },
+                      { text: 'Assignment', type: ClaimSource.Written },
+                      { text: 'Case study', type: ClaimSource.Written },
+                      { text: 'Research project', type: ClaimSource.Written },
+                      { text: 'Self-assessment', type: ClaimSource.Written },
+                      { text: 'Development plan', type: ClaimSource.Written },
+                      { text: 'Supervision log', type: ClaimSource.Testimony },
+                      { text: 'Client session log', type: ClaimSource.Testimony },
+                      { text: 'Peer skills feedback', type: ClaimSource.Testimony },
+                      { text: 'Group work log', type: ClaimSource.Testimony },
+                      { text: 'Workshop activity', type: ClaimSource.Testimony },
+                      { text: 'Tutorial log', type: ClaimSource.TutorObservation },
+                      { text: 'Tutor skills feedback', type: ClaimSource.TutorObservation }
+                    ]" :key="suggestion.text"
+                      @click="submitWorkForm.evidence = suggestion.text; submitWorkForm.source = suggestion.type; showEvidenceSuggestions = false"
+                      :color="getClaimColor(suggestion.type)" text-color="white">
+                      {{ suggestion.text }}
+                    </q-chip>
+                  </q-banner>
+                </q-popup-proxy>
+              </q-icon>
+            </template>
+          </q-input>
+          <q-btn-toggle v-model="submitWorkForm.source" :options="claimSourceOptions"
+            :toggle-color="getClaimColor(submitWorkForm.source)" label="Source" spread dense rounded />
+          <q-input v-model="submitWorkForm.claimDate" mask="date" label="Date claimed" :rules="['date']">
+            <template v-slot:append>
+              <q-icon v-if="!submitWorkForm.claimDate" name="auto_awesome" class="cursor-pointer" color="pink"
+                @click="submitWorkForm.claimDate = new Date().toISOString().slice(0, 10)" />
+              <q-icon name="event" class="cursor-pointer">
+                <q-popup-proxy cover transition-show="scale" transition-hide="scale">
+                  <q-date v-model="submitWorkForm.claimDate">
+                    <div class="row items-center justify-end">
+                      <q-btn v-close-popup label="Close" color="primary" flat />
+                    </div>
+                  </q-date>
+                </q-popup-proxy>
+              </q-icon>
+            </template>
+          </q-input>
+          <q-field label="Tutor confirmed?">
+            <template v-slot:append>
+              <q-toggle v-model="submitWorkForm.confirmed" checked-icon="check" color="green" unchecked-icon="clear"
+                left-label />
+            </template>
+          </q-field>
+
+          <q-list>
+            <div class="text-h6">Criteria claims</div>
+            <div class="text">Select the criteria you are claiming against this piece of work.</div>
+
+            <q-separator spaced inset />
+
+            <q-item header class="text-bold" v-for="criteriaClaim in submitWorkForm.criteriaClaims"
+              :key="criteriaClaim.criteriaId">
+              <q-item-section>
+                <div class="row">
+                  <div class="col-9">
+                    <q-select v-model="criteriaClaim.criteriaId" label="Criteria" :options="criteriaOptions"
+                      @filter="criteriaOptionsFilter" outlined clearable maxlength="50" :bottom-slots="false" emit-value
+                      use-input>
+                      <template v-slot:selected-item>
+                        {{ criteriaClaim.criteriaId }}
+                      </template>
+                    </q-select>
+                  </div>
+                  <div class="col text-right">
+                    <q-input v-model="criteriaClaim.page" type="number" label="Page" outlined />
+                  </div>
+                </div>
+              </q-item-section>
+              <q-item-section side>
+                <q-btn flat icon="delete" color="negative"
+                  @click="submitWorkForm.criteriaClaims = submitWorkForm.criteriaClaims.filter(c => c !== criteriaClaim)" />
+              </q-item-section>
+            </q-item>
+            <q-separator spaced inset />
+
+            <q-item>
+              <q-item-section side>
+                <q-btn flat icon-right="add" label="Add criteria claim"
+                  @click="submitWorkForm.criteriaClaims.push({ criteriaId: '', page: undefined })" />
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-card-section>
+
+        <q-card-section>
+          <q-card-actions align="right">
+            <q-btn label="Cancel" color="secondary" @click="isSubmitWorkDialogOpen = false" />
+            <q-btn label="Ok" color="primary" @click="isSubmitWorkDialogOpen = false; submitWork()" />
+          </q-card-actions>
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
   </q-page>
 </template>
 
 <script setup lang="ts">
-import type { CriteriaSet, Claim, CriteriaDefinition, CriteriaSection } from 'src/components/models';
+import type { CriteriaSet, Claim, CriteriaDefinition, CriteriaSection, WorkSubmission } from 'src/components/models';
 import { ClaimSource } from 'src/components/models';
 import { ref, watch } from 'vue';
 import { useCriteriaSetStore } from 'src/stores/criteria-set-store';
@@ -448,6 +601,7 @@ const isClaimDialogOpen = ref(false);
 const isSaveDialogOpen = ref(false);
 const isDeleteDialogOpen = ref(false);
 const isUnsavedDialogOpen = ref(false);
+const isSubmitWorkDialogOpen = ref(false);
 const showEvidenceSuggestions = ref(false);
 const changedSinceLastSave = ref(false);
 const saveFileFormat = ref('localStorage');
@@ -463,6 +617,13 @@ const claimForm = ref<Claim>({
   page: undefined,
   source: ClaimSource.Written,
 });
+const submitWorkForm = ref<WorkSubmission>({
+  evidence: '',
+  claimDate: '',
+  source: ClaimSource.Written,
+  confirmed: false,
+  criteriaClaims: []
+});
 const localStorageCriteriaSets = ref(loadAllFromLocalStorage());
 
 const claimSourceOptions = [
@@ -470,6 +631,37 @@ const claimSourceOptions = [
   { label: 'Testimony', value: ClaimSource.Testimony },
   { label: 'Tutor Observation', value: ClaimSource.TutorObservation },
 ];
+const criteriaOptions = ref<{ label: string, value: string }[]>([]);
+const filteredCriteriaOptions = ref(criteriaOptions);
+
+function buildCriteriaOptions() {
+  if (!criteriaSet.value) return [];
+  return criteriaSet.value.units.flatMap(unit =>
+    unit.sections.flatMap(section =>
+      section.criteria.map(criteria => ({
+        label: `${criteria.id} ${criteria.title}`,
+        value: criteria.id
+      }))
+    )
+  );
+}
+
+function criteriaOptionsFilter(val: string, update: (arg0: { (): void; (): void; }) => void) {
+  console.log('Filtering criteria options with', val);
+  if (val === '') {
+    update(() => {
+      filteredCriteriaOptions.value = buildCriteriaOptions();
+    })
+    return
+  }
+
+  update(() => {
+    const needle = val.toLowerCase()
+    filteredCriteriaOptions.value = criteriaOptions.value.filter(option =>
+      option.label.toLowerCase().includes(needle)
+    )
+  })
+}
 
 watch(filter, (newFilter: string) => {
   if (newFilter === undefined || newFilter === null || newFilter.trim() === '') {
@@ -497,6 +689,38 @@ watch(filter, (newFilter: string) => {
     });
   }
 }, { immediate: true });
+
+function submitWork() {
+  if (!criteriaSet.value) return;
+  const submission = submitWorkForm.value;
+  submission.criteriaClaims.forEach(criteriaClaim => {
+    const criteria = criteriaSet.value?.units
+      .flatMap(unit => unit.sections)
+      .flatMap(section => section.criteria)
+      .find(c => c.id === criteriaClaim.criteriaId);
+    if (criteria) {
+      const newClaim: Claim = {
+        id: uuidv4(),
+        evidence: submission.evidence,
+        claimDate: submission.claimDate,
+        confirmed: submission.confirmed,
+        page: criteriaClaim.page,
+        source: submission.source,
+      };
+      criteria.claims.push(newClaim);
+    }
+  });
+
+  criteriaSetStore.setCriteriaSet(criteriaSet.value);
+  changedSinceLastSave.value = true;
+  submitWorkForm.value = {
+    evidence: '',
+    claimDate: '',
+    source: ClaimSource.Written,
+    confirmed: false,
+    criteriaClaims: []
+  };
+}
 
 function openClaimDialog(criteria: CriteriaDefinition) {
   selectedCriteria.value = criteria;
@@ -682,6 +906,7 @@ function uploadFile(file: File | null): void {
 
 function setAllVisible(): void {
   if (criteriaSet.value) {
+    criteriaOptions.value = buildCriteriaOptions();
     criteriaSet.value.units.forEach(unit => {
       unit._visible = true;
       unit.sections.forEach(section => {
