@@ -18,7 +18,7 @@
     </q-dialog>
 
     <!-- Main section -->
-    <div v-if="criteriaSet" class="full-width float-top">
+    <div v-if="criteriaSet" class="full-width flex-start">
       <!-- Summary card -->
       <q-card class="q-mb-md q-pt-xl">
         <q-card-section>
@@ -253,6 +253,9 @@
           </q-expansion-item>
         </q-expansion-item>
       </q-list>
+
+      <!-- Spacer at bottom -->
+      <div class="q-pb-xl"></div>
     </div>
 
     <!-- Upload a criteria file -->
@@ -582,7 +585,6 @@
         </q-card-section>
       </q-card>
     </q-dialog>
-
   </q-page>
 </template>
 
