@@ -337,6 +337,12 @@
           <q-select v-model="saveFileFormat"
             :options="[{ label: 'Local storage (Kept in the browser)', value: 'localStorage' }, { label: 'JSON (Download folder)', value: 'json' }, { label: 'CSV (Download folder)', value: 'csv' }]"
             label="File Format" emit-value />
+          <q-field v-if="saveFileFormat === 'csv'" label="Include page numbers?">
+            <template v-slot:append>
+              <q-toggle v-model="includePageNumbers" checked-icon="check" color="green" unchecked-icon="clear"
+                left-label />
+            </template>
+          </q-field>
         </q-card-section>
 
         <q-card-section v-if="saveFileFormat === 'localStorage'" class="text-bold">
@@ -608,6 +614,7 @@ const showEvidenceSuggestions = ref(false);
 const changedSinceLastSave = ref(false);
 const saveFileFormat = ref('localStorage');
 const saveFileName = ref('');
+const includePageNumbers = ref(false);
 const deleteFileName = ref('');
 const filter = ref('');
 const selectedCriteria = ref<CriteriaDefinition | undefined>();
@@ -972,7 +979,7 @@ function exportCsv() {
             const year = dateObj.getFullYear();
             formattedDate = `${day}/${month}/${year}`;
           }
-          return `${claim.evidence} ${formattedDate ? `${formattedDate}` : ''} (${claim.source}) ${claim.page ? `p${claim.page}` : ''}`;
+          return `${claim.evidence} ${formattedDate ? `${formattedDate}` : ''} (${claim.source}) ${claim.page && includePageNumbers.value ? `p${claim.page}` : ''}`;
         }).join('\n');
         rows.push([`${criteria.id} ${criteria.title}`, guidance, claims]);
       });
