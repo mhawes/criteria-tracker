@@ -30,12 +30,12 @@
           Overall progress: ({{criteriaSet?.units.reduce((total, unit) => {
             return total + unit.sections.reduce((sectionTotal, section) => {
               return sectionTotal + section.criteria.reduce((criteriaTotal, criteria) => {
-                return criteriaTotal + Math.min(criteria.claims.length, 2);
+                return criteriaTotal + (criteria.claims.length > 0 ? 1 : 0);
               }, 0);
             }, 0);
           }, 0)}}/{{criteriaSet?.units.reduce((total, unit) => {
             return total + unit.sections.reduce((sectionTotal, section) => {
-              return sectionTotal + section.criteria.length * 2;
+              return sectionTotal + section.criteria.length;
             }, 0);
           }, 0)}})
           <q-linear-progress :color="getOverallProgress() >= 1 ? 'positive' : 'primary'"
@@ -58,34 +58,34 @@
               <div class="text-h4" v-if="$q.screen.gt.sm">{{ unit.id + ' ' + unit.learningOutcome }}
                 ({{unit.sections.reduce((total, section) => {
                   return total + section.criteria.reduce((criteriaTotal, criteria) => {
-                    return criteriaTotal + Math.min(criteria.claims.length, 2);
+                    return criteriaTotal + (criteria.claims.length > 0 ? 1 : 0);
                   }, 0);
                 }, 0)}}/{{unit.sections.reduce((total, section) => {
-                  return total + section.criteria.length * 2;
+                  return total + section.criteria.length;
                 }, 0)}})
               </div>
               <div class="text-subtitle2" v-else>{{ unit.id + ' ' + unit.learningOutcome }}
                 ({{unit.sections.reduce((total, section) => {
                   return total + section.criteria.reduce((criteriaTotal, criteria) => {
-                    return criteriaTotal + Math.min(criteria.claims.length, 2);
+                    return criteriaTotal + (criteria.claims.length > 0 ? 1 : 0);
                   }, 0);
                 }, 0)}}/{{unit.sections.reduce((total, section) => {
-                  return total + section.criteria.length * 2;
+                  return total + section.criteria.length;
                 }, 0)}})
               </div>
               <!-- Unit progress -->
               <q-linear-progress :color="unit.sections.reduce((total, section) => {
                 return total + section.criteria.reduce((criteriaTotal, criteria) => {
-                  return criteriaTotal + Math.min(criteria.claims.length, 2);
+                  return criteriaTotal + Math.min(criteria.claims.length, 1);
                 }, 0);
               }, 0) / (unit.sections.reduce((total, section) => {
-                return total + section.criteria.length * 2;
+                return total + section.criteria.length;
               }, 0)) >= 1 ? 'positive' : 'primary'" :value="unit.sections.reduce((total, section) => {
                 return total + section.criteria.reduce((criteriaTotal, criteria) => {
-                  return criteriaTotal + Math.min(criteria.claims.length, 2);
+                  return criteriaTotal + Math.min(criteria.claims.length, 1);
                 }, 0);
               }, 0) / (unit.sections.reduce((total, section) => {
-                return total + section.criteria.length * 2;
+                return total + section.criteria.length;
               }, 0))"></q-linear-progress>
             </div>
           </template>
@@ -138,13 +138,13 @@
                 <q-icon :name="isSectionComplete(section) ? 'check' : 'cancel'" class="q-mr-sm" />
                 <div class="text-h5" v-if="$q.screen.gt.sm">{{ section.id + ' ' + section.learningOutcome }}
                   ({{section.criteria.reduce((total, criteria) => {
-                    return total + Math.min(criteria.claims.length, 2);
-                  }, 0)}}/{{ section.criteria.length * 2 }})
+                    return total + (criteria.claims.length > 0 ? 1 : 0);
+                  }, 0)}}/{{ section.criteria.length }})
                 </div>
                 <div class="text-subtitle2" v-else>{{ section.id + ' ' + section.learningOutcome }}
                   ({{section.criteria.reduce((total, criteria) => {
-                    return total + Math.min(criteria.claims.length, 2);
-                  }, 0)}}/{{ section.criteria.length * 2 }})</div>
+                    return total + (criteria.claims.length > 0 ? 1 : 0);
+                  }, 0)}}/{{ section.criteria.length }})</div>
 
                 <!-- Section progress -->
                 <q-linear-progress :color="getSectionProgress(section) >= 1 ? 'positive' : 'primary'"
@@ -158,17 +158,15 @@
 
               <template v-slot:header>
                 <div class="row items-center full-width">
-                  <q-icon :name="criteria.claims.length >= 2 ? 'check' : 'cancel'" class="q-mr-sm" />
+                  <q-icon :name="criteria.claims.length >= 1 ? 'check' : 'cancel'" class="q-mr-sm" />
                   <div class="text-h6" v-if="$q.screen.gt.sm">{{ criteria.id + ' ' + criteria.title }}
-                    ({{ criteria.claims.length }}/2)
                   </div>
                   <div class="text-subtitle2" v-else>{{ criteria.id + ' ' + criteria.title }}
-                    ({{ criteria.claims.length }}/2)
                   </div>
 
                   <!-- Criteria progress -->
-                  <q-linear-progress :color="criteria.claims.length >= 2 ? 'positive' : 'primary'"
-                    :value="Math.min(criteria.claims.length / 2, 1)"></q-linear-progress>
+                  <q-linear-progress :color="criteria.claims.length >= 1 ? 'positive' : 'primary'"
+                    :value="Math.min(criteria.claims.length, 1)"></q-linear-progress>
                 </div>
               </template>
 
@@ -306,8 +304,8 @@
 
             <q-item clickable @click="loadTemplate('L4-1-0925-127CC')">
               <q-item-section>
-                <q-item-label><b>L4-1-0925-127CC</b> Level 4 Diploma in Integrative Therapeutic Counselling: Year 1
-                  (2025-2026)</q-item-label>
+                <q-item-label><b>L4-1-0925-127CC</b> Level 4 Diploma in Integrative Therapeutic Counselling: Year
+                  1</q-item-label>
               </q-item-section>
             </q-item>
 
@@ -810,9 +808,9 @@ function onClickClaim(claim: Claim, criteria: CriteriaDefinition): void {
 }
 
 function getSectionProgress(section: { criteria: { claims: Claim[] }[] }): number {
-  const totalCriteria = section.criteria.length * 2;
+  const totalCriteria = section.criteria.length;
   const completedCriteria = section.criteria.reduce((total, criteria) => {
-    return total + Math.min(criteria.claims.length, 2);
+    return total + (criteria.claims.length > 0 ? 1 : 0);
   }, 0);
   return totalCriteria > 0 ? completedCriteria / totalCriteria : 0;
 }
@@ -821,13 +819,13 @@ function getOverallProgress(): number {
   if (!criteriaSet.value) return 0;
   const totalCriteria = criteriaSet.value.units.reduce((unitTotal, unit) => {
     return unitTotal + unit.sections.reduce((sectionTotal, section) => {
-      return sectionTotal + section.criteria.length * 2;
+      return sectionTotal + section.criteria.length;
     }, 0);
   }, 0);
   const completedCriteria = criteriaSet.value.units.reduce((unitTotal, unit) => {
     return unitTotal + unit.sections.reduce((sectionTotal, section) => {
       return sectionTotal + section.criteria.reduce((criteriaTotal, criteria) => {
-        return criteriaTotal + Math.min(criteria.claims.length, 2);
+        return criteriaTotal + (criteria.claims.length > 0 ? 1 : 0);
       }, 0);
     }, 0);
   }, 0);
@@ -842,7 +840,7 @@ function isSectionComplete(section: CriteriaSection): boolean {
   const hasWritten = section.criteria.some(criteria => criteria.claims.some(claim => claim.source === ClaimSource.Written));
   const hasTestimony = section.criteria.some(criteria => criteria.claims.some(claim => claim.source === ClaimSource.Testimony));
   const hasTutor = section.criteria.some(criteria => criteria.claims.some(claim => claim.source === ClaimSource.TutorObservation));
-  return hasWritten && hasTestimony && hasTutor && section.criteria.every(criteria => criteria.claims.length >= 2);
+  return hasWritten && hasTestimony && hasTutor && section.criteria.every(criteria => criteria.claims.length >= 1);
 }
 
 function getClaimColor(source: ClaimSource): string {
